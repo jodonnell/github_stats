@@ -78,11 +78,12 @@ end
 
 all_stats = {}
 repos_stats = {}
+total_repo_stats = {}
 all_repos = find_all_current_repos token, org
 all_repos.each do |repo|
   path = "/repos/#{org}/#{repo}/stats/contributors"
   stats = make_api_call_and_save_fixture token, path, "contributors-#{repo}.json"
-  # stats = load_fixture
+  # stats = load_fixture "contributors-#{repo}.json"
 
   stats.each do |stat|
     author = stat["author"]["login"]
@@ -90,6 +91,10 @@ all_repos.each do |repo|
 
     if not all_stats.key?(author)
       all_stats[author] = { "a" => 0, "d" => 0, "c" => 0 }
+    end
+
+    if not total_repo_stats.key?(repo)
+      total_repo_stats[repo] = { "a" => 0, "d" => 0, "c" => 0 }
     end
 
     if not repos_stats.key?(author)
@@ -105,11 +110,25 @@ all_repos.each do |repo|
       all_stats[author]["a"] += last_x_weeks[week]["a"]
       all_stats[author]["d"] += last_x_weeks[week]["d"]
       all_stats[author]["c"] += last_x_weeks[week]["c"]
+
+      total_repo_stats[repo]["a"] += last_x_weeks[week]["a"]
+      total_repo_stats[repo]["d"] += last_x_weeks[week]["d"]
+      total_repo_stats[repo]["c"] += last_x_weeks[week]["c"]
     end
   end
 end
 
 all_stats.each { |key, value| value["t"] = value["a"] + value["d"] }
+total_repo_stats.each { |key, value| value["t"] = value["a"] + value["d"] }
+
+(total_repo_stats.sort_by {|key, value| value["t"]}).reverse.each do |stat_array|
+  repo = stat_array[0]
+  stat = stat_array[1]
+
+  puts
+  puts repo
+  puts "  #{stat['t']}  +#{stat['a']} -#{stat['d']} commits: #{stat['c']}"
+end
 
 (all_stats.sort_by {|key, value| value["t"]}).reverse.each do |stat_array|
   author = stat_array[0]
